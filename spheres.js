@@ -21,11 +21,11 @@ var Matrix;
 var MatrixLoc;
 
 //x,y,z coord, and heading variable for camera movement
-var coord = [ 0, Math.sin(Math.PI/6) * -75, -75 ];
+var coord = [ 0, Math.sin(Math.PI/6) * -50, -50 ];
 var headingAngle = 0;
 
 //sphere creation variables
-var numTimesToSubdivide = 2;
+var numTimesToSubdivide = 3;
 var index = 0;
 var pointsArray = [];
 var normalsArray = [];
@@ -131,9 +131,6 @@ window.onload = function init()
         var key = event.keyCode > 48 ? String.fromCharCode(event.keyCode) : event.keyCode;
         var radian = radians(headingAngle);
         switch(key) {
-            case 'C':
-                colorIndex = (colorIndex + 1) % vertexColors.length;
-                break;
             case 'I':
                 coord[0] -=(.25 * Math.sin(radian));
                 coord[2] +=(.25 * Math.cos(radian));
@@ -158,7 +155,7 @@ window.onload = function init()
                 break;        
             case 'R':
                 coord[0] = 0;
-                coord[1] = 0;
+                coord[1] = Math.sin(Math.PI/6) * -75;
                 coord[2] = -75;
                 headingAngle = 0;
                 fovx = 45;
