@@ -1,10 +1,6 @@
 //represent gl object
 var gl;
 
-//theta variable
-var thetaLoc;
-var theta = 0.0;
-
 //vertex color, and color index variables
 var vColorLoc;
 var colorIndex = 0;
@@ -19,15 +15,18 @@ var far = 200;
 //translation matrix, model-view matrix, and scale matrix
 var tMatrix;
 var mvMatrix;
+var rotMatrix;
+var scaleMatrix;
 var Matrix;
 var MatrixLoc;
+
 
 //x,y,z coord, and heading variable for camera movement
 var coord = [ 0, 0, -75 ];
 var headingAngle = 0;
 
 //sphere creation variables
-var numTimesToSubdivide = 3;
+var numTimesToSubdivide = 2;
 var index = 0;
 var pointsArray = [];
 var normalsArray = [];
@@ -38,29 +37,16 @@ var vb = vec4(0.0, 0.942809, 0.333333, 1);
 var vc = vec4(-0.816497, -0.471405, 0.333333, 1);
 var vd = vec4(0.816497, -0.471405, 0.333333,1);
 
-//color array
-var vertexColors = [
-    [ 0.6, 0.6, 0.6, 1.0 ],  // black
-    [ 0.0, 0.0, 1.0, 1.0 ],  // blue
-    [ 0.0, 1.0, 0.0, 1.0 ],  // green
-    [ 0.0, 1.0, 1.0, 1.0 ],  // cyan
-    [ 1.0, 0.0, 0.0, 1.0 ],  // red
-    [ 1.0, 0.0, 1.0, 1.0 ],  // magenta
-    [ 1.0, 1.0, 0.0, 1.0 ],  // yellow
-    [ 0.5, 0.5, 0.5, 1.0 ],  // grey
-];
-
 //array of matrices to instance 8 spheres
 var spheres = [
-    translate( 10,  10,  10),
-    translate( 10,  10, -10),
-    translate( 10, -10,  10),
-    translate( 10, -10, -10),
-    translate(-10,  10,  10),
-    translate(-10,  10, -10),
-    translate(-10, -10,  10),
-    translate(-10, -10, -10),
+    translate( 15, 0, 0),
+    translate( 10, 0, 0),
 ];
+
+var theta = [
+    0,
+    0,
+]
 
 function triangle(a, b, c) {
      pointsArray.push(a);
@@ -73,8 +59,7 @@ function triangle(a, b, c) {
      normalsArray.push(b[0],b[1], b[2], 0.0);
      normalsArray.push(c[0],c[1], c[2], 0.0);
 
-     index += 3;
-     
+     index += 3;  
 }
 
 function divideTriangle(a, b, c, count) {
@@ -128,7 +113,6 @@ window.onload = function init()
 
     // get variables from shader
     vColorLoc = gl.getUniformLocation( program, "vColor" );
-    thetaLoc = gl.getUniformLocation( program, "theta");
     MatrixLoc = gl.getUniformLocation( program, "Matrix");
 
     //create and bind buffer for vertices
@@ -174,7 +158,7 @@ window.onload = function init()
             case 'R':
                 coord[0] = 0;
                 coord[1] = 0;
-                coord[2] = -25;
+                coord[2] = -75;
                 headingAngle = 0;
                 fovx = 45;
                 break;   
@@ -207,24 +191,25 @@ function fovy()
 function render() {
     //clear canvas
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
-    
-    //rotate by theta and send to shader
-    theta += 6.0;
-    gl.uniform1f(thetaLoc, theta);
 
     //apply model-view matrix
-    pMatrix = perspective(fovy(), aspect, near, far);
-    tMatrix = mult(rotate(headingAngle, [ 0, 1, 0 ]), translate( coord[0], coord[1], coord[2]));
-    mvMatrix = mult(pMatrix, tMatrix);
+    pMatrix = mult(perspective(fovy(), aspect, near, far), rotate(headingAngle, [ 0, 1, 0 ]));
+    tMatrix = mult(pMatrix, translate( coord[0], coord[1], coord[2]));
+    gl.uniformMatrix4fv(MatrixLoc, false, flatten(tMatrix));
+    gl.uniform4fv(vColorLoc, [1.0, 1.0, 0.0, 1.0]);
+    for (var j = 0; j < index; j+= 3) {
+        gl.drawArrays(gl.TRIANGLES, j , 3);
+    }
 
     //instance the spheres
-    for (var i = 0; i < spheres.length; ++i) {
-        console.log("creating sphere");
+    for (var i = 0; i < spheres.length; i++) {
+        theta[i] += 2 * (i+ 1);
+        mvMatrix = mult(tMatrix, rotate(theta[i], [0, 1, 0]));
         Matrix = mult(mvMatrix, spheres[i]);
         gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
 
         //set up color of triangles then draw
-        gl.uniform4fv(vColorLoc, vertexColors[(colorIndex + i) % vertexColors.length]);
+        gl.uniform4fv(vColorLoc, [ 1.0, 1.0, 0.0, 1.0 ]);
 
         for (var j = 0; j < index; j+= 3) {
             gl.drawArrays(gl.TRIANGLES, j , 3);

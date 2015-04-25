@@ -10,26 +10,14 @@
 		<!--init scripts-->
 		<script id="vertex-shader" type="x-shader/x-vertex">
 		attribute  vec4 vPosition;
-		uniform float theta;
 		uniform vec4 vColor;
 		uniform mat4 Matrix;
 		varying vec4 fColor;
 
 		void main() 
 		{
-		    // Compute the sines and cosines
-		    float angles = radians( theta );
-		    float c = cos( angles );
-		    float s = sin( angles );
-
-		    // matrix to rotate around y axis
-		    mat4 ry = mat4( c, 0.0, -s, 0.0,
-				    0.0, 1.0,  0.0, 0.0,
-				    s, 0.0,  c, 0.0,
-				    0.0, 0.0,  0.0, 1.0 );
-
 		    fColor = vColor;
-		    gl_Position = Matrix * ry * vPosition;
+		    gl_Position = Matrix * vPosition;
 		} 
 		</script>
 
