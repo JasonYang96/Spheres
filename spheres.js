@@ -20,9 +20,8 @@ var scaleMatrix;
 var Matrix;
 var MatrixLoc;
 
-
 //x,y,z coord, and heading variable for camera movement
-var coord = [ 0, 0, -75 ];
+var coord = [ 0, Math.sin(Math.PI/6) * -75, -75 ];
 var headingAngle = 0;
 
 //sphere creation variables
@@ -41,9 +40,11 @@ var vd = vec4(0.816497, -0.471405, 0.333333,1);
 var spheres = [
     translate( 15, 0, 0),
     translate( 10, 0, 0),
+    translate( 10, 0, 0),
 ];
 
 var theta = [
+    0,
     0,
     0,
 ]
@@ -193,27 +194,43 @@ function render() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
     //apply model-view matrix
-    pMatrix = mult(perspective(fovy(), aspect, near, far), rotate(headingAngle, [ 0, 1, 0 ]));
+    pMatrix = mult(mult(perspective(fovy(), aspect, near, far), rotate( 30, [1,0,0])), rotate(headingAngle, [ 0, 1, 0 ]));
     tMatrix = mult(pMatrix, translate( coord[0], coord[1], coord[2]));
-    gl.uniformMatrix4fv(MatrixLoc, false, flatten(tMatrix));
+    scaleMatrix = mult(tMatrix, scale(3,3,3));
+
+    //create stationary sun
+    gl.uniformMatrix4fv(MatrixLoc, false, flatten(scaleMatrix));
     gl.uniform4fv(vColorLoc, [1.0, 1.0, 0.0, 1.0]);
     for (var j = 0; j < index; j+= 3) {
         gl.drawArrays(gl.TRIANGLES, j , 3);
     }
 
     //instance the spheres
-    for (var i = 0; i < spheres.length; i++) {
-        theta[i] += 2 * (i+ 1);
+    for (var i = 0; i < spheres.length - 1; i++) {
+        theta[i] += .5 * (i+ 1);
         mvMatrix = mult(tMatrix, rotate(theta[i], [0, 1, 0]));
-        Matrix = mult(mvMatrix, spheres[i]);
+        scaleMatrix = mult(mvMatrix, scale( i*.5 + .5, i*.5 + .5, i*.5 + .5));
+        Matrix = mult(scaleMatrix, spheres[i]);
         gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
 
         //set up color of triangles then draw
-        gl.uniform4fv(vColorLoc, [ 1.0, 1.0, 0.0, 1.0 ]);
+        gl.uniform4fv(vColorLoc, [ 1.0, 0.0, 0.0, 1.0 ]);
 
         for (var j = 0; j < index; j+= 3) {
             gl.drawArrays(gl.TRIANGLES, j , 3);
         }
+    }
+
+    //create the moon on the last planet drawn
+    theta[theta.length - 1] += 2
+    scaleMatrix = mult(Matrix, scale(.2,.2,.2));
+    rotMatrix = mult(rotate(theta[2], [0,1,0]), spheres[spheres.length -1]);
+    Matrix = mult(scaleMatrix,rotMatrix);
+    gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
+
+    gl.uniform4fv(vColorLoc, [0.0, 1.0, 0.0, 1.0]);
+    for (var j = 0; j < index; j+= 3) {
+        gl.drawArrays(gl.TRIANGLES,j,3);
     }
 
     //call render on browser refresh
