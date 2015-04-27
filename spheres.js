@@ -38,16 +38,18 @@ var vd = vec4(0.816497, -0.471405, 0.333333,1);
 
 //array of matrices to instance 8 spheres
 var spheres = [
+    translate( 10, 0, 0),
+    translate( 12, 0, 0),
     translate( 15, 0, 0),
-    translate( 10, 0, 0),
-    translate( 10, 0, 0),
+    translate( 17, 0, 0),
 ];
 
 var theta = [
     0,
     0,
     0,
-]
+    0,
+];
 
 function triangle(a, b, c) {
      pointsArray.push(a);
@@ -203,31 +205,34 @@ function render() {
     }
 
     //instance the spheres
-    for (var i = 0; i < spheres.length - 1; i++) {
-        theta[i] += .5 * (i+ 1);
-        mvMatrix = mult(tMatrix, rotate(theta[i], [0, 1, 0]));
-        scaleMatrix = mult(mvMatrix, scale( i*.5 + .5, i*.5 + .5, i*.5 + .5));
-        Matrix = mult(scaleMatrix, spheres[i]);
+    for (var i = 0; i < spheres.length; i++) {
+
+        if (i == spheres.length - 1)
+        {
+            //create the moon on the last planet drawn
+            theta[i] += 2
+            scaleMatrix = mult(Matrix, scale(.2,.2,.2));
+            rotMatrix = mult(rotate(theta[i], [0,1,0]), spheres[i]);
+            Matrix = mult(scaleMatrix,rotMatrix);
+
+            gl.uniform4fv(vColorLoc, [0.0, 1.0, 0.0, 1.0]);
+        }
+        else
+        {
+            theta[i] += .5 * (i+ 1);
+            mvMatrix = mult(tMatrix, rotate(theta[i], [0, 1, 0]));
+            scaleMatrix = mult(mvMatrix, scale( i*.5 + .5, i*.5 + .5, i*.5 + .5));
+            Matrix = mult(scaleMatrix, spheres[i]);
+
+            gl.uniform4fv(vColorLoc, [ 1.0, 0.0, 0.0, 1.0 ]);
+        }
+
         gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
 
-        //set up color of triangles then draw
-        gl.uniform4fv(vColorLoc, [ 1.0, 0.0, 0.0, 1.0 ]);
 
         for (var j = 0; j < index; j+= 3) {
             gl.drawArrays(gl.TRIANGLES, j , 3);
         }
-    }
-
-    //create the moon on the last planet drawn
-    theta[theta.length - 1] += 2
-    scaleMatrix = mult(Matrix, scale(.2,.2,.2));
-    rotMatrix = mult(rotate(theta[2], [0,1,0]), spheres[spheres.length -1]);
-    Matrix = mult(scaleMatrix,rotMatrix);
-    gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
-
-    gl.uniform4fv(vColorLoc, [0.0, 1.0, 0.0, 1.0]);
-    for (var j = 0; j < index; j+= 3) {
-        gl.drawArrays(gl.TRIANGLES,j,3);
     }
 
     //call render on browser refresh
