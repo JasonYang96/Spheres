@@ -20,12 +20,15 @@ var scaleMatrix;
 var Matrix;
 var MatrixLoc;
 
+//light variables
+var lightAmbient = vec4(1.0, 1.0, 0.0, 1.0);
+var ambientColor, diffuseColor, specularClor;
+
 //x,y,z coord, and heading variable for camera movement
-var coord = [ 0, Math.sin(Math.PI/6) * -50, -50 ];
+var coord = [ 0, Math.sin(Math.PI/6) * -75, -75 ];
 var headingAngle = 0;
 
 //sphere creation variables
-var numTimesToSubdivide = 3;
 var index = 0;
 var pointsArray = [];
 var normalsArray = [];
@@ -36,20 +39,22 @@ var vb = vec4(0.0, 0.942809, 0.333333, 1);
 var vc = vec4(-0.816497, -0.471405, 0.333333, 1);
 var vd = vec4(0.816497, -0.471405, 0.333333,1);
 
-//array of matrices to instance 8 spheres
-var spheres = [
-    translate( 10, 0, 0),
-    translate( 12, 0, 0),
-    translate( 15, 0, 0),
-    translate( 17, 0, 0),
-];
+//array of planets and moon
+var planets = [];
 
-var theta = [
-    0,
-    0,
-    0,
-    0,
-];
+//creates a planet
+function planet(x,n,s,t,dt)
+{
+    this.translateMatrix = translate(x, 0, 0);
+    this.sMatrix = scale(s, s, s);
+    this.theta = t;
+    this.dtheta = dt;
+    this.starting = index;
+
+    //create a sphere
+    tetrahedron(va, vb, vc, vd, n);
+    this.numPoints = index - this.starting;
+}
 
 function triangle(a, b, c) {
      pointsArray.push(a);
@@ -102,8 +107,12 @@ window.onload = function init()
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebG isn't available" ); }
 
-    //create a sphere
-    tetrahedron(va, vb, vc, vd, numTimesToSubdivide);
+    //creating planets and moon
+    planets.push(new planet(7, 3, .8, 0, 2));
+    planets.push(new planet(15, 3, .5, 90, 1.5));
+    planets.push(new planet(20, 3, .7, 270, 1));
+    planets.push(new planet(25, 3, .9, 299, 1));
+    planets.push(new planet(10, 3, .2, 180, .5));
 
     //configure WebGL
     gl.viewport( 0, 0, canvas.width, canvas.height );
@@ -201,38 +210,36 @@ function render() {
     gl.uniformMatrix4fv(MatrixLoc, false, flatten(scaleMatrix));
     gl.uniform4fv(vColorLoc, [1.0, 1.0, 0.0, 1.0]);
     for (var j = 0; j < index; j+= 3) {
-        gl.drawArrays(gl.TRIANGLES, j , 3);
+        gl.drawArrays(gl.TRIANGLES, j , index);
     }
 
     //instance the spheres
-    for (var i = 0; i < spheres.length; i++) {
-
-        if (i == spheres.length - 1)
+    for (var i = 0; i < planets.length; i++) {
+        //create the moon on the last planet drawn
+        if (i == planets.length - 1)
         {
-            //create the moon on the last planet drawn
-            theta[i] += 2
-            scaleMatrix = mult(Matrix, scale(.2,.2,.2));
-            rotMatrix = mult(rotate(theta[i], [0,1,0]), spheres[i]);
+            planets[i].theta += planets[i].dtheta;
+            scaleMatrix = mult(Matrix, planets[i].sMatrix);
+            rotMatrix = mult(rotate(planets[i].theta, [0,1,0]), planets[i].translateMatrix);
             Matrix = mult(scaleMatrix,rotMatrix);
+
+            ambientProduct = mult(lightAmbient, [0.0, 1.0, 0.0, 1.0]);
 
             gl.uniform4fv(vColorLoc, [0.0, 1.0, 0.0, 1.0]);
         }
+        //draw the other planets
         else
         {
-            theta[i] += .5 * (i+ 1);
-            mvMatrix = mult(tMatrix, rotate(theta[i], [0, 1, 0]));
-            scaleMatrix = mult(mvMatrix, scale( i*.5 + .5, i*.5 + .5, i*.5 + .5));
-            Matrix = mult(scaleMatrix, spheres[i]);
+            planets[i].theta += planets[i].dtheta;
+            scaleMatrix = mult(tMatrix, planets[i].sMatrix);
+            rotMatrix = mult(scaleMatrix, rotate(planets[i].theta, [0, 1, 0]));
+            Matrix = mult(rotMatrix, planets[i].translateMatrix);
 
             gl.uniform4fv(vColorLoc, [ 1.0, 0.0, 0.0, 1.0 ]);
         }
 
         gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
-
-
-        for (var j = 0; j < index; j+= 3) {
-            gl.drawArrays(gl.TRIANGLES, j , 3);
-        }
+        gl.drawArrays(gl.TRIANGLES, planets[i].starting , planets[i].numPoints);
     }
 
     //call render on browser refresh
