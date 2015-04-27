@@ -274,7 +274,7 @@ function render() {
     pMatrix = perspective(fovy(), aspect, near, far);
     gl.uniformMatrix4fv(pMatrixLoc, false, flatten(pMatrix));
 
-    tMatrix = mult(mult( rotate( headingAngle, [0, 1, 0]), rotate( 30, [1,0,0])), translate( coord[0], coord[1], coord[2]));
+    tMatrix = mult(mult( rotate( 30, [1,0,0]), rotate( headingAngle, [0, 1, 0])), translate( coord[0], coord[1], coord[2]));
 
     //instance the spheres
     for (var i = 0; i < planets.length; i++) {
