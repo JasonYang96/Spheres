@@ -11,7 +11,7 @@ var pMatrixLoc;
 var fovx = 45.0;
 var aspect;
 var near = 0.1;
-var far = 200;
+var far = 125;
 
 //translation matrix, model-view matrix, and scale matrix
 var tMatrix;
@@ -32,7 +32,7 @@ var shininessLoc;
 var sunMatrixLoc;
 
 //x,y,z coord, and heading variable for camera movement
-var coord = [ 0, Math.sin(Math.PI/6) * -75, -75 ];
+var coord = [ 0, Math.sin(Math.PI/6) * -60, -60 ];
 var headingAngle = 0;
 
 //sphere creation variables
@@ -50,7 +50,7 @@ var vd = vec4(0.816497, -0.471405, 0.333333,1);
 var planets = [];
 
 //creates a planet
-function planet(x,n,s,t,dt, material, shading) {
+function planet(x,n,s,t,dt, shading, material) {
     this.translateMatrix = translate(x, 0, 0);
     this.sMatrix = scale(s, s, s);
     this.theta = t;
@@ -59,28 +59,38 @@ function planet(x,n,s,t,dt, material, shading) {
     this.material = material;
     this.shading = shading;
     //create a sphere
-    tetrahedron(va, vb, vc, vd, n);
+    tetrahedron(va, vb, vc, vd, n, shading);
     this.numPoints = index - this.starting;
 }
 
-function triangle(a, b, c) {
+function triangle(a, b, c, shading) {
      pointsArray.push(a);
      pointsArray.push(b);      
      pointsArray.push(c);
-     var u = subtract(b, a);
-     var v = subtract(c, a);
-     var normal = vec4(normalize(cross(v,u)), true);
-     normal[3] = 0.0;
-    
-     // normals are vectors
-     normalsArray.push(normal);
-     normalsArray.push(normal);
-     normalsArray.push(normal);
+
+     if (shading == 0) //flat shading
+     {
+        var u = subtract(b, a);
+        var v = subtract(c, a);
+        var normal = vec4(normalize(cross(v,u)), true);
+        normal[3] = 0.0;
+        
+        // normals are vectors
+        normalsArray.push(normal);
+        normalsArray.push(normal);
+        normalsArray.push(normal);
+     }
+     else if (shading == 1) //Gourand shading
+     {
+        normalsArray.push(vec4(a[0],a[1], a[2], 0.0));
+        normalsArray.push(vec4(b[0],b[1], b[2], 0.0));
+        normalsArray.push(vec4(c[0],c[1], c[2], 0.0));
+     }
 
      index += 3;  
 }
 
-function divideTriangle(a, b, c, count) {
+function divideTriangle(a, b, c, count, shading) {
     if ( count > 0 ) {
                 
         var ab = mix( a, b, 0.5);
@@ -91,21 +101,21 @@ function divideTriangle(a, b, c, count) {
         ac = normalize(ac, true);
         bc = normalize(bc, true);
                                 
-        divideTriangle( a, ab, ac, count - 1 );
-        divideTriangle( ab, b, bc, count - 1 );
-        divideTriangle( bc, c, ac, count - 1 );
-        divideTriangle( ab, bc, ac, count - 1 );
+        divideTriangle( a, ab, ac, count - 1, shading );
+        divideTriangle( ab, b, bc, count - 1, shading );
+        divideTriangle( bc, c, ac, count - 1, shading );
+        divideTriangle( ab, bc, ac, count - 1, shading );
     }
     else { 
-        triangle( a, b, c );
+        triangle( a, b, c, shading );
     }
 }
 
-function tetrahedron(a, b, c, d, n) {
-    divideTriangle(a, b, c, n);
-    divideTriangle(d, c, b, n);
-    divideTriangle(a, d, b, n);
-    divideTriangle(a, c, d, n);
+function tetrahedron(a, b, c, d, n, shading) {
+    divideTriangle(a, b, c, n, shading);
+    divideTriangle(d, c, b, n, shading);
+    divideTriangle(a, d, b, n, shading);
+    divideTriangle(a, c, d, n, shading);
 }
 
 window.onload = function init()
@@ -118,52 +128,46 @@ window.onload = function init()
     if ( !gl ) { alert( "WebG isn't available" ); }
 
     //creating planets and moon
-    planets.push(new planet(0, 4, 3, 0, 0, {
+    planets.push(new planet(0, 4, 3, 0, 0, 0, {
         ambient: vec4(1.0, 1.0, 0.0, 1.0),
         diffuse: vec4(1.0, 1.0, 0.0, 1.0),
         specular: vec4(1.0, 1.0, 0.0, 1.0),
         shininess: 0.0,
-        shading: 0,
     }));
-    //swampy, watery green with medium-low complexity sphere, flat shaded
-    planets.push(new planet(7, 3, .8, 0, 2, {
+    //swampy, watery green with medium-low complexity sphere, Gouraud shaded
+    planets.push(new planet(7, 3, .8, 0, 2, 1, {
         ambient: vec4(.098, .2, 0.0, 1.0),
         diffuse: vec4(.098, .2, 0.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 5.0,
-        shading: 0,
     }));
     //clam smooth water with high complexity, phong shaded and specular highlight
-    planets.push(new planet(15, 5, .5, 90, 1.5, {
+    planets.push(new planet(15, 5, .5, 90, 1.5, 0, {
         ambient: vec4(.2, .6, 1.0, 1.0),
         diffuse: vec4(.2, .6, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 10.0,
-        shading: 0,
     }));
     //icy planet with medium-low complexity, flat shaded
-    planets.push(new planet(20, 2, .7, 270, 1, {
+    planets.push(new planet(20, 2, .7, 270, 1, 0, {
         ambient: vec4(0.0, 1.0, 1.0, 1.0),
         diffuse: vec4(0.0, 1.0, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 20.0,
-        shading: 0,
     }));
     //muddy planet with dull appearance with medium-high complexity and no specular
-    planets.push(new planet(25, 4, .9, 299, 1, {
+    planets.push(new planet(25, 4, .9, 299, 1, 0, {
         ambient: vec4(.5, .098, 0.0, 1.0),
         diffuse: vec4(.5, .098, 0.0, 1.0),
         specular: vec4(.5, .098, 0.0, 1.0),
         shininess: 100.0,
-        shading: 0,
     }));
     //moon on muddy planet
-    planets.push(new planet(10, 2, .2, 180, 2, {
+    planets.push(new planet(10, 2, .2, 180, 2, 0, {
         ambient: vec4(.5, .098, 0.0, 1.0),
         diffuse: vec4(.5, .098, 0.0, 1.0),
         specular: vec4(.5, .098, 0.0, 1.0),
         shininess: 30.0,
-        shading: 0,
     }));
 
     //configure WebGL
@@ -232,8 +236,8 @@ window.onload = function init()
                 break;        
             case 'R':
                 coord[0] = 0;
-                coord[1] = Math.sin(Math.PI/6) * -75;
-                coord[2] = -75;
+                coord[1] = Math.sin(Math.PI/6) * -60;
+                coord[2] = -60;
                 headingAngle = 0;
                 fovx = 45;
                 break;   
@@ -270,7 +274,7 @@ function render() {
     pMatrix = perspective(fovy(), aspect, near, far);
     gl.uniformMatrix4fv(pMatrixLoc, false, flatten(pMatrix));
 
-    tMatrix = mult(rotate( 30 + headingAngle, [1,0,0]), translate( coord[0], coord[1], coord[2]));
+    tMatrix = mult(mult( rotate( headingAngle, [0, 1, 0]), rotate( 30, [1,0,0])), translate( coord[0], coord[1], coord[2]));
 
     //instance the spheres
     for (var i = 0; i < planets.length; i++) {
