@@ -23,7 +23,7 @@ var MatrixLoc;
 
 //light variables
 var lightAmbient = vec4(0.5, 0.5, 0.5, 1.0);
-var lightDiffuse = vec4(1.0, 1.0, 0.0, 1.0);
+var lightDiffuse = vec4(.9, .9, .9, 1.0);
 var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 var ambientProductLoc, diffuseProductLoc, specularProductLoc;
 var ambientProduct, diffuseProduct, specularProduct;
@@ -118,45 +118,50 @@ window.onload = function init()
     if ( !gl ) { alert( "WebG isn't available" ); }
 
     //creating planets and moon
-    planets.push(new planet(0, 5, 3, 0, 0, {
+    planets.push(new planet(0, 4, 3, 0, 0, {
         ambient: vec4(1.0, 1.0, 0.0, 1.0),
         diffuse: vec4(1.0, 1.0, 0.0, 1.0),
         specular: vec4(1.0, 1.0, 0.0, 1.0),
         shininess: 0.0,
         shading: 0,
     }));
-    planets.push(new planet(7, 5, .8, 0, 2, {
-        ambient: vec4(1.0, 0.0, 0.0, 1.0),
-        diffuse: vec4(1.0, 0.0, 0.0, 1.0),
+    //swampy, watery green with medium-low complexity sphere, flat shaded
+    planets.push(new planet(7, 3, .8, 0, 2, {
+        ambient: vec4(.098, .2, 0.0, 1.0),
+        diffuse: vec4(.098, .2, 0.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 5.0,
         shading: 0,
     }));
+    //clam smooth water with high complexity, phong shaded and specular highlight
     planets.push(new planet(15, 5, .5, 90, 1.5, {
-        ambient: vec4(1.0, 0.0, 0.0, 1.0),
-        diffuse: vec4(1.0, 0.0, 0.0, 1.0),
+        ambient: vec4(.2, .6, 1.0, 1.0),
+        diffuse: vec4(.2, .6, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 10.0,
         shading: 0,
     }));
-    planets.push(new planet(20, 5, .7, 270, 1, {
-        ambient: vec4(1.0, 0.0, 0.0, 1.0),
-        diffuse: vec4(1.0, 0.0, 0.0, 1.0),
+    //icy planet with medium-low complexity, flat shaded
+    planets.push(new planet(20, 2, .7, 270, 1, {
+        ambient: vec4(0.0, 1.0, 1.0, 1.0),
+        diffuse: vec4(0.0, 1.0, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 20.0,
         shading: 0,
     }));
-    planets.push(new planet(25, 5, .9, 299, 1, {
-        ambient: vec4(1.0, 0.0, 0.0, 1.0),
-        diffuse: vec4(1.0, 0.0, 0.0, 1.0),
-        specular: vec4(1.0, 1.0, 1.0, 1.0),
-        shininess: 30.0,
+    //muddy planet with dull appearance with medium-high complexity and no specular
+    planets.push(new planet(25, 4, .9, 299, 1, {
+        ambient: vec4(.5, .098, 0.0, 1.0),
+        diffuse: vec4(.5, .098, 0.0, 1.0),
+        specular: vec4(.5, .098, 0.0, 1.0),
+        shininess: 100.0,
         shading: 0,
     }));
-    planets.push(new planet(10, 5, .2, 180, 2, {
-        ambient: vec4(0.0, 1.0, 0.0, 1.0),
-        diffuse: vec4(0.0, 1.0, 0.0, 1.0),
-        specular: vec4(1.0, 1.0, 1.0, 1.0),
+    //moon on muddy planet
+    planets.push(new planet(10, 2, .2, 180, 2, {
+        ambient: vec4(.5, .098, 0.0, 1.0),
+        diffuse: vec4(.5, .098, 0.0, 1.0),
+        specular: vec4(.5, .098, 0.0, 1.0),
         shininess: 30.0,
         shading: 0,
     }));
