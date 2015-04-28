@@ -317,7 +317,7 @@ function render() {
         //calculating variables used for LookAt function
         var lastPlanet = planets[planets.length - 2];
         var rot = rotate(lastPlanet.theta, [0, 1, 0]);
-        var pos = vec4(lastPlanet.xcoord - 1, 0, 0, 1);
+        var pos = vec4(lastPlanet.xcoord + 6, 0, 0, 1);
         var eye = multMatVec(rot, pos);
         eye = [eye[0],eye[1],eye[2]];
         rot = rotate(headingAngle, [0,-1,0]);

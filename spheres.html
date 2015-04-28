@@ -11,14 +11,13 @@
 		<script id="vertex-shader" type="x-shader/x-vertex">
 		attribute vec4 vPosition;
 		attribute vec4 vNormal;
-		varying vec4 fColor;
-
 		uniform vec4 ambientProduct, diffuseProduct, specularProduct;
 		uniform mat4 Matrix, pMatrix, sunMatrix;
 		uniform float shininess;
 		uniform int shading;
 
 		varying vec3 N, L, E;
+		varying vec4 fColor;
 
 		void main() 
 		{
@@ -27,6 +26,8 @@
 			L = normalize(light-pos);
 			N = normalize((Matrix * vNormal).xyz);
 			E = normalize(-pos);
+
+			//do shading in vertex shader if flat or Gouraud
 			if (shading < 2) {
 				vec3 H = normalize(L + E);
 				
@@ -62,13 +63,14 @@
 		{
 			if (shading < 2)
 				gl_FragColor = fColor;
+			//do shading in fragment shader if Phong
 			else
 			{
 				vec4 Color;
 
 				vec3 H = normalize(normalize(L) + normalize(E));
 				
-				//compute fColor
+				//compute Color
 				vec4 ambient = ambientProduct;
 				float Kd = max(dot(normalize(L),(N)), 0.0);
 				vec4 diffuse = Kd * diffuseProduct;
