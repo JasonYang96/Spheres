@@ -54,6 +54,12 @@ var vd = vec4(0.816497, -0.471405, 0.333333,1);
 var planets = [];
 
 //creates a planet
+//x used as the x-coordinate for translate matrix
+//n used as the numTimesSubdivide
+//s used in scale matrix
+//t and dt represent initial theta and how much each change per render call
+//shading represent which shading model to use, 0 for flat, 1 for Gouraud, 2 for Phong
+//material represents a material object with material vectors used in lighting
 function planet(x,n,s,t,dt, shading, material) {
     this.xcoord = x;
     this.translateMatrix = translate(x, 0, 0);
@@ -68,6 +74,7 @@ function planet(x,n,s,t,dt, shading, material) {
     this.numPoints = index - this.starting;
 }
 
+//following 3 functions used to create a sphere
 function triangle(a, b, c, shading) {
      pointsArray.push(a);
      pointsArray.push(b);      
@@ -123,6 +130,7 @@ function tetrahedron(a, b, c, d, n, shading) {
     divideTriangle(a, c, d, n, shading);
 }
 
+//init function
 window.onload = function init()
 {
     //initialize canvas and webGL
@@ -133,6 +141,8 @@ window.onload = function init()
     if ( !gl ) { alert( "WebG isn't available" ); }
 
     //creating planets and moon
+
+    //creating sun
     planets.push(new planet(0, 4, 3, 0, 0, 0, {
         ambient: vec4(1.0, 1.0, 0.0, 1.0),
         diffuse: vec4(1.0, 1.0, 0.0, 1.0),
@@ -168,7 +178,7 @@ window.onload = function init()
         shininess: 100.0,
     }));
     //moon on muddy planet
-    planets.push(new planet(10, 2, .2, 180, .3, 0, {
+    planets.push(new planet(10, 2, .2, 180, 2, 0, {
         ambient: vec4(.5, .098, 0.0, 1.0),
         diffuse: vec4(.5, .098, 0.0, 1.0),
         specular: vec4(.5, .098, 0.0, 1.0),
@@ -209,6 +219,7 @@ window.onload = function init()
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
     gl.bufferData( gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW );
 
+    //send the normal buffer to shader
     var vNormal = gl.getAttribLocation( program, "vNormal");
     gl.vertexAttribPointer( vNormal, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray( vNormal );
@@ -278,6 +289,7 @@ function fovy() {
     return ( 2 * Math.atan(Math.tan(radians(fovx)/2) / aspect) * 180 / Math.PI);
 }
 
+//functions I used to multiply a Matrix and a vector
 function multMatVec(u,v) {
     var result = [];
 
@@ -296,23 +308,25 @@ function render() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
     //calculate prospective Matrix
-
     pMatrix = perspective(fovy(), aspect, near, far);
     gl.uniformMatrix4fv(pMatrixLoc, false, flatten(pMatrix));
 
+    //if attached to planet
     if (swag)
     {
+        //calculating variables used for LookAt function
         var lastPlanet = planets[planets.length - 2];
         var rot = rotate(lastPlanet.theta, [0, 1, 0]);
         var pos = vec4(lastPlanet.xcoord - 1, 0, 0, 1);
         var eye = multMatVec(rot, pos);
-        eye = eye.slice(0,3);
+        eye = [eye[0],eye[1],eye[2]];
         rot = rotate(headingAngle, [0,-1,0]);
         var at = subtract([0,0,0], eye);
-        at = at.concat(1);
+        at[3]=1;
         at = multMatVec(rot, at);
         at = at.slice(0,3);
         at = add(at, eye);
+
         tMatrix = lookAt(eye, at, [0,1,0]);
     }
     else
@@ -326,6 +340,8 @@ function render() {
         ambientProduct = mult(lightAmbient, planets[i].material.ambient);
         diffuseProduct = mult(lightDiffuse, planets[i].material.diffuse);
         specularProduct = mult(lightSpecular, planets[i].material.specular);
+        
+        //send to shader
         gl.uniform4fv(ambientProductLoc, ambientProduct);
         gl.uniform4fv(diffuseProductLoc, diffuseProduct);
         gl.uniform4fv(specularProductLoc, specularProduct);
@@ -346,10 +362,13 @@ function render() {
             Matrix = mult(Matrix, planets[i].translateMatrix);
         }
 
+        //send in sunMatrix for lightPosition
         if (i == 0)
         {
             gl.uniformMatrix4fv(sunMatrixLoc, false, flatten(Matrix));
         }
+
+        //send variables to shader and draw
         gl.uniform1i(shadingLoc, planets[i].shading);
         gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
         gl.drawArrays(gl.TRIANGLES, planets[i].starting , planets[i].numPoints);
