@@ -66,13 +66,13 @@
 			{
 				vec4 Color;
 
-				vec3 H = normalize(L + E);
+				vec3 H = normalize(normalize(L) + normalize(E));
 				
 				//compute fColor
 				vec4 ambient = ambientProduct;
-				float Kd = max(dot(L,N), 0.0);
+				float Kd = max(dot(normalize(L),(N)), 0.0);
 				vec4 diffuse = Kd * diffuseProduct;
-				float Ks = pow(max(dot(N,H), 0.0), shininess);
+				float Ks = pow(max(dot(normalize(N),normalize(H)), 0.0), shininess);
 				vec4 specular = Ks * specularProduct;
 
 				if (dot(L,N) < 0.0) {

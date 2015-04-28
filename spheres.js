@@ -55,6 +55,7 @@ var planets = [];
 
 //creates a planet
 function planet(x,n,s,t,dt, shading, material) {
+    this.xcoord = x;
     this.translateMatrix = translate(x, 0, 0);
     this.sMatrix = scale(s, s, s);
     this.theta = t;
@@ -153,21 +154,21 @@ window.onload = function init()
         shininess: 10.0,
     }));
     //icy planet with medium-low complexity, flat shaded
-    planets.push(new planet(20, 2, 1.5, 270, 1, 0, {
+    planets.push(new planet(17, 2, 1.5, 270, 1, 0, {
         ambient: vec4(0.0, 1.0, 1.0, 1.0),
         diffuse: vec4(0.0, 1.0, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 20.0,
     }));
     //muddy planet with dull appearance with medium-high complexity and no specular
-    planets.push(new planet(25, 4, 1.3, 299, 1, 0, {
+    planets.push(new planet(25, 4, 1.3, 299, .5, 0, {
         ambient: vec4(.5, .098, 0.0, 1.0),
         diffuse: vec4(.5, .098, 0.0, 1.0),
         specular: vec4(.5, .098, 0.0, 1.0),
         shininess: 100.0,
     }));
     //moon on muddy planet
-    planets.push(new planet(10, 2, .2, 180, 2, 0, {
+    planets.push(new planet(10, 2, .2, 180, .3, 0, {
         ambient: vec4(.5, .098, 0.0, 1.0),
         diffuse: vec4(.5, .098, 0.0, 1.0),
         specular: vec4(.5, .098, 0.0, 1.0),
@@ -238,17 +239,20 @@ window.onload = function init()
                 break;
             case 'W':
                 fovx += 1;
-                break;        
+                break;  
+            case 'S':
+                swag = !swag;
+                headingAngle = 0;
+                break;
             case 'R':
                 coord[0] = 0;
                 coord[1] = Math.sin(Math.PI/6) * -85;
                 coord[2] = -85;
                 headingAngle = 0;
                 fovx = 45;
+                if(swag)
+                    swag = false;
                 break; 
-            case 'S':
-                swag = !swag;
-                break;
             case 37: //left arrow
                 headingAngle -=1;
                 break;
@@ -279,7 +283,7 @@ function multMatVec(u,v) {
 
     for (var i = 0; i < u.length; i++) {
         var sum = 0;
-        for (var j = 0; j < v.length; j++) {
+        for (var j = 0; j < u.length; j++) {
             sum += u[i][j] * v[j];
         }
         result.push(sum);
@@ -300,14 +304,14 @@ function render() {
     {
         var lastPlanet = planets[planets.length - 2];
         var rot = rotate(lastPlanet.theta, [0, 1, 0]);
-        var pos = vec4(lastPlanet.x - 1, 0, 0, 1);
+        var pos = vec4(lastPlanet.xcoord - 1, 0, 0, 1);
         var eye = multMatVec(rot, pos);
-        eye = [eye[0], eye[1], eye[2]];
+        eye = eye.slice(0,3);
         rot = rotate(headingAngle, [0,-1,0]);
         var at = subtract([0,0,0], eye);
-        at[3] = 1.0;
+        at = at.concat(1);
         at = multMatVec(rot, at);
-        at = [at[0], at[1], at[2]];
+        at = at.slice(0,3);
         at = add(at, eye);
         tMatrix = lookAt(eye, at, [0,1,0]);
     }
