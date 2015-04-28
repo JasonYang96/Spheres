@@ -16,41 +16,73 @@
 		uniform vec4 ambientProduct, diffuseProduct, specularProduct;
 		uniform mat4 Matrix, pMatrix, sunMatrix;
 		uniform float shininess;
+		uniform int shading;
+
+		varying vec3 N, L, E;
 
 		void main() 
 		{
 			vec3 pos = (Matrix * vPosition).xyz;
 			vec3 light = (sunMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-			vec3 L = normalize(light-pos);
-			vec3 E = normalize(-pos);
-			vec3 H = normalize(L + E);
-			vec3 N = normalize((Matrix * vNormal).xyz);
-			
-			//compute fColor
-			vec4 ambient = ambientProduct;
-			float Kd = max(dot(L,N), 0.0);
-			vec4 diffuse = Kd * diffuseProduct;
-			float Ks = pow(max(dot(N,H), 0.0), shininess);
-			vec4 specular = Ks * specularProduct;
+			L = normalize(light-pos);
+			N = normalize((Matrix * vNormal).xyz);
+			E = normalize(-pos);
+			if (shading < 2) {
+				vec3 H = normalize(L + E);
+				
+				//compute fColor
+				vec4 ambient = ambientProduct;
+				float Kd = max(dot(L,N), 0.0);
+				vec4 diffuse = Kd * diffuseProduct;
+				float Ks = pow(max(dot(N,H), 0.0), shininess);
+				vec4 specular = Ks * specularProduct;
 
-			if (dot(L,N) < 0.0) {
-				specular = vec4(0.0, 0.0, 0.0, 1.0);
+				if (dot(L,N) < 0.0) {
+					specular = vec4(0.0, 0.0, 0.0, 1.0);
+				}
+
+			    fColor = ambient + diffuse + specular;
+			    fColor.a = 1.0;
 			}
-
-		    fColor = ambient + diffuse + specular;
-		    fColor.a = 1.0;
 		    gl_Position = pMatrix * Matrix * vPosition;
 		} 
 		</script>
 
 		<script id="fragment-shader" type="x-shader/x-fragment">
 		precision mediump float;
+		uniform highp float shininess;
+		uniform highp int shading;
 		varying vec4 fColor;
+		uniform highp vec4 ambientProduct, diffuseProduct, specularProduct;
+		varying highp vec3 N,L,E;
+
 
 		void
 		main()
 		{
-		    gl_FragColor = fColor;
+			if (shading < 2)
+				gl_FragColor = fColor;
+			else
+			{
+				vec4 Color;
+
+				vec3 H = normalize(L + E);
+				
+				//compute fColor
+				vec4 ambient = ambientProduct;
+				float Kd = max(dot(L,N), 0.0);
+				vec4 diffuse = Kd * diffuseProduct;
+				float Ks = pow(max(dot(N,H), 0.0), shininess);
+				vec4 specular = Ks * specularProduct;
+
+				if (dot(L,N) < 0.0) {
+					specular = vec4(0.0, 0.0, 0.0, 1.0);
+				}
+
+			    Color = ambient + diffuse + specular;
+			    Color.a = 1.0;
+			    gl_FragColor = Color;
+			}
 		}
 		</script>
 		<script type="text/javascript" src="./Common/webgl-utils.js"></script>

@@ -1,6 +1,9 @@
 //represent gl object
 var gl;
 
+//bool to attach to planet
+var swag = false;
+
 //vertex color, and color index variables
 var vColorLoc;
 var colorIndex = 0;
@@ -30,9 +33,10 @@ var ambientProduct, diffuseProduct, specularProduct;
 var lightPositionLoc;
 var shininessLoc;
 var sunMatrixLoc;
+var shadingLoc;
 
 //x,y,z coord, and heading variable for camera movement
-var coord = [ 0, Math.sin(Math.PI/6) * -60, -60 ];
+var coord = [ 0, Math.sin(Math.PI/6) * -85, -85 ];
 var headingAngle = 0;
 
 //sphere creation variables
@@ -80,7 +84,7 @@ function triangle(a, b, c, shading) {
         normalsArray.push(normal);
         normalsArray.push(normal);
      }
-     else if (shading == 1) //Gourand shading
+     else //Gourand/Blinn-Phong shading
      {
         normalsArray.push(vec4(a[0],a[1], a[2], 0.0));
         normalsArray.push(vec4(b[0],b[1], b[2], 0.0));
@@ -135,28 +139,28 @@ window.onload = function init()
         shininess: 0.0,
     }));
     //swampy, watery green with medium-low complexity sphere, Gouraud shaded
-    planets.push(new planet(7, 3, .8, 0, 2, 1, {
+    planets.push(new planet(7, 3, 1, 0, 2, 1, {
         ambient: vec4(.098, .2, 0.0, 1.0),
         diffuse: vec4(.098, .2, 0.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 5.0,
     }));
     //clam smooth water with high complexity, phong shaded and specular highlight
-    planets.push(new planet(15, 5, .5, 90, 1.5, 0, {
+    planets.push(new planet(15, 5, 1.2, 90, 1.5, 2, {
         ambient: vec4(.2, .6, 1.0, 1.0),
         diffuse: vec4(.2, .6, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 10.0,
     }));
     //icy planet with medium-low complexity, flat shaded
-    planets.push(new planet(20, 2, .7, 270, 1, 0, {
+    planets.push(new planet(20, 2, 1.5, 270, 1, 0, {
         ambient: vec4(0.0, 1.0, 1.0, 1.0),
         diffuse: vec4(0.0, 1.0, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
         shininess: 20.0,
     }));
     //muddy planet with dull appearance with medium-high complexity and no specular
-    planets.push(new planet(25, 4, .9, 299, 1, 0, {
+    planets.push(new planet(25, 4, 1.3, 299, 1, 0, {
         ambient: vec4(.5, .098, 0.0, 1.0),
         diffuse: vec4(.5, .098, 0.0, 1.0),
         specular: vec4(.5, .098, 0.0, 1.0),
@@ -187,6 +191,7 @@ window.onload = function init()
     pMatrixLoc = gl.getUniformLocation( program, "pMatrix");
     shininessLoc = gl.getUniformLocation( program, "shininess");
     sunMatrixLoc = gl.getUniformLocation( program, "sunMatrix");
+    shadingLoc = gl.getUniformLocation( program, "shading");
 
     //create and bind buffer for vertices
     var vBuffer = gl.createBuffer();
@@ -236,11 +241,14 @@ window.onload = function init()
                 break;        
             case 'R':
                 coord[0] = 0;
-                coord[1] = Math.sin(Math.PI/6) * -60;
-                coord[2] = -60;
+                coord[1] = Math.sin(Math.PI/6) * -85;
+                coord[2] = -85;
                 headingAngle = 0;
                 fovx = 45;
-                break;   
+                break; 
+            case 'S':
+                swag = !swag;
+                break;
             case 37: //left arrow
                 headingAngle -=1;
                 break;
@@ -266,15 +274,45 @@ function fovy() {
     return ( 2 * Math.atan(Math.tan(radians(fovx)/2) / aspect) * 180 / Math.PI);
 }
 
+function multMatVec(u,v) {
+    var result = [];
+
+    for (var i = 0; i < u.length; i++) {
+        var sum = 0;
+        for (var j = 0; j < v.length; j++) {
+            sum += u[i][j] * v[j];
+        }
+        result.push(sum);
+    }
+    return result;
+}
+
 function render() {
     //clear canvas
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
     //calculate prospective Matrix
+
     pMatrix = perspective(fovy(), aspect, near, far);
     gl.uniformMatrix4fv(pMatrixLoc, false, flatten(pMatrix));
 
-    tMatrix = mult(mult( rotate( 30, [1,0,0]), rotate( headingAngle, [0, 1, 0])), translate( coord[0], coord[1], coord[2]));
+    if (swag)
+    {
+        var lastPlanet = planets[planets.length - 2];
+        var rot = rotate(lastPlanet.theta, [0, 1, 0]);
+        var pos = vec4(lastPlanet.x - 1, 0, 0, 1);
+        var eye = multMatVec(rot, pos);
+        eye = [eye[0], eye[1], eye[2]];
+        rot = rotate(headingAngle, [0,-1,0]);
+        var at = subtract([0,0,0], eye);
+        at[3] = 1.0;
+        at = multMatVec(rot, at);
+        at = [at[0], at[1], at[2]];
+        at = add(at, eye);
+        tMatrix = lookAt(eye, at, [0,1,0]);
+    }
+    else
+        tMatrix = mult(mult( rotate( 30, [1,0,0]), rotate( headingAngle, [0, 1, 0])), translate( coord[0], coord[1], coord[2]));
 
     //instance the spheres
     for (var i = 0; i < planets.length; i++) {
@@ -308,6 +346,7 @@ function render() {
         {
             gl.uniformMatrix4fv(sunMatrixLoc, false, flatten(Matrix));
         }
+        gl.uniform1i(shadingLoc, planets[i].shading);
         gl.uniformMatrix4fv(MatrixLoc, false, flatten(Matrix));
         gl.drawArrays(gl.TRIANGLES, planets[i].starting , planets[i].numPoints);
     }
